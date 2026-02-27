@@ -4,7 +4,7 @@ const _settings = {
 
   // CONVERSES SHOES:
   // 3D models:
-  shoeRightPath: "assets/tc_7900.glb",
+  shoeRightPath: "assets/shoe.glb",
   isModelLightMapped: true,
   occluderPath: "assets/occluder.glb",
 
