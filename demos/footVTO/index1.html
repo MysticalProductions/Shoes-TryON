@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Shoe Store AR</title>
+
+        <link rel="stylesheet" href="style.css" />
+
+        <!-- WEBARROCKS -->
+        <script src="../../dist/WebARRocksHand.js"></script>
+        <script src="../../libs/three/v131/build/three.js"></script>
+        <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
+        <script src="../../helpers/HandTrackerThreeHelper.js"></script>
+        <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
+
+        <!-- YOUR EXISTING AR ENGINE -->
+        <script src="main.js"></script>
+    </head>
+
+    <body>
+        <header>VTO Shoe Store</header>
+
+        <section class="products">
+            <div class="card">
+                <img
+                    src="https://images.unsplash.com/photo-1542291026-7eec264c27ff"
+                />
+                <h3>Velocity X Pro</h3>
+                <p>₹4,999</p>
+                <button onclick="openAR()">Try in AR</button>
+            </div>
+
+            <div class="card">
+                <img
+                    src="https://images.unsplash.com/photo-1608231387042-66d1773070a5"
+                />
+                <h3>Urban Street Neo</h3>
+                <p>₹3,499</p>
+                <button onclick="openAR()">Try in AR</button>
+            </div>
+
+            <div class="card">
+                <img
+                    src="https://images.unsplash.com/photo-1528701800489-20be3c2ea8f1"
+                />
+                <h3>Aero Flex Run</h3>
+                <p>₹5,299</p>
+                <button onclick="openAR()">Try in AR</button>
+            </div>
+
+            <div class="card">
+                <img
+                    src="https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb"
+                />
+                <h3>Titan Grip Max</h3>
+                <p>₹6,199</p>
+                <button onclick="openAR()">Try in AR</button>
+            </div>
+        </section>
+
+        <!-- AR MODAL (ALWAYS IN DOM) -->
+        <div id="overlay" class="overlay">
+            <div class="arBox">
+                <button class="closeBtn" onclick="closeAR()">Close</button>
+
+                <canvas id="handTrackerCanvas"></canvas>
+                <canvas id="ARCanvas"></canvas>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
+    </body>
+</html>
