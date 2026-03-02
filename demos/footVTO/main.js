@@ -1,55 +1,24 @@
-const _settings = {
-  threshold: 0.9, // detection sensitivity, between 0 and 1. best: 0.8
-  NNVersion: 31, // best: 31
+let AR_INITIALIZED = false;
 
-  // CONVERSES SHOES:
-  // 3D models:
-  shoeRightPath: "assets/shoe.glb",
-  isModelLightMapped: false,
+const _settings = {
+  threshold: 0.85,
+  NNVersion: 31,
+
+  shoeRightPath: "assets/shoe.glb", // DRACO compressed
   occluderPath: "assets/occluder.glb",
 
-  // pose settings:
   scale: 0.95,
-  translation: [0, -0.02, 0], // Z -> verical, Y+ -> front way
-
-  /*
-  // BALLERINA SHOES:
-  // 3D models:
-  shoeRightPath: 'assets/ballerinaShoe.glb',
-  isModelLightMapped: false,
-  occluderPath: 'assets/occluder.glb',
-
-  // pose settings:
-  scale: 1.2,
-  translation: [0, 0.01, -0.02], // Z -> verical
-  //*/
-
-  // debug flags:
-  debugCube: false, // Add a cube
-  debugDisplayLandmarks: true,
+  translation: [0, -0.02, 0],
 };
-
-const _three = {
-  loadingManager: null,
-};
-
-const _states = {
-  notLoaded: -1,
-  loading: 0,
-  running: 1,
-  busy: 2,
-};
-let _state = _states.notLoaded;
-let _isSelfieCam = false;
 
 function setFullScreen(cv) {
-  cv.width = window.innerWidth;
-  cv.height = window.innerHeight;
+  cv.width = cv.clientWidth;
+  cv.height = cv.clientHeight;
 }
 
-// entry point:
-function main() {
-  _state = _states.loading;
+function initAR() {
+  if (AR_INITIALIZED) return;
+  AR_INITIALIZED = true;
 
   const handTrackerCanvas = document.getElementById("handTrackerCanvas");
   const VTOCanvas = document.getElementById("ARCanvas");
@@ -69,108 +38,57 @@ function main() {
       "middleToeBaseTop",
       "bigToeBaseTop",
     ],
-    enableFlipObject: true, //true,
-    cameraZoom: 1,
-    freeZRot: false,
+
+    enableFlipObject: true,
     threshold: _settings.threshold,
+    maxHandsDetected: 1,
+
     scanSettings: {
-      multiDetectionSearchSlotsRate: 0.5,
-      multiDetectionMaxOverlap: 0.3,
-      multiDetectionOverlapScaleXY: [0.5, 1],
-      multiDetectionEqualizeSearchSlotScale: true,
-      multiDetectionForceSearchOnOtherSide: true,
-      multiDetectionForceChirality: 1,
-      disableIsRightHandNNEval: true,
-      overlapFactors: [1.0, 1.0, 1.0],
-      translationScalingFactors: [0.3, 0.3, 1],
-      nScaleLevels: 2, // in the higher scale level, the size of the detection window is the smallest video dimension
-      scale0Factor: 0.5,
+      nScaleLevels: 1, // Faster startup
+      scale0Factor: 0.6,
+      multiDetectionSearchSlotsRate: 0.3,
     },
-    VTOCanvas: VTOCanvas,
-    handTrackerCanvas: handTrackerCanvas,
-    debugDisplayLandmarks: false,
-    NNsPaths: [
-      "../../neuralNets/NN_FOOT_" + _settings.NNVersion.toString() + ".json",
-    ],
-    maxHandsDetected: 2,
-    stabilizationSettings: {
-      //qualityFactorRange: [0.4, 0.7],
-      NNSwitchMask: {
-        isRightHand: false,
-        isFlipped: false,
-      },
-    },
-    landmarksStabilizerSpec: {
-      minCutOff: 0.001,
-      beta: 5, // lower => more stabilized
-    },
+
+    NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
+
+    VTOCanvas,
+    handTrackerCanvas,
   })
-    .then(function (three) {
-      handTrackerCanvas.style.zIndex = 3; // fix a weird bug on iOS15 / safari
-      start(three);
-    })
-    .catch(function (err) {
-      console.log("INFO in main.js: an error happens ", err);
-    });
+    .then(startThree)
+    .catch((err) => console.log("AR init error:", err));
 }
 
-function hide_loading() {
-  // remove loading:
-  const domLoading = document.getElementById("loading");
-  domLoading.style.opacity = 0;
-  setTimeout(function () {
-    domLoading.parentNode.removeChild(domLoading);
-  }, 800);
-}
+function startThree(three) {
+  document.getElementById("arLoader").style.display = "none";
 
-function start(three) {
-  three.loadingManager.onLoad = function () {
-    console.log("INFO in main.js: Everything is loaded");
-    hide_loading();
-    _state = _states.running;
-  };
-
-  // set tonemapping:
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
-  // set lighting:
-  if (!_settings.isModelLightMapped) {
-    const pointLight = new THREE.PointLight(0xffffff, 2);
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    three.scene.add(pointLight, ambientLight);
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  three.scene.add(ambient);
+
+  const dracoLoader = new THREE.DRACOLoader();
+  dracoLoader.setDecoderPath(
+    "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
+  );
+
+  const loader = new THREE.GLTFLoader();
+  loader.setDRACOLoader(dracoLoader);
+
+  function transform(obj) {
+    obj.scale.multiplyScalar(_settings.scale);
+    obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
   }
 
-  // add a debug cube:
-  if (_settings.debugCube) {
-    const s = 1;
-    const cubeGeom = new THREE.BoxGeometry(s, s, s);
-    const cubeMesh = new THREE.Mesh(cubeGeom, new THREE.MeshNormalMaterial());
-    HandTrackerThreeHelper.add_threeObject(cubeMesh);
-  }
-
-  function transform(threeObject) {
-    threeObject.scale.multiplyScalar(_settings.scale);
-    threeObject.position.add(
-      new THREE.Vector3().fromArray(_settings.translation),
-    );
-  }
-
-  // load the shoes 3D model:
-  new THREE.GLTFLoader().load(_settings.shoeRightPath, function (gltf) {
+  loader.load(_settings.shoeRightPath, (gltf) => {
     const shoe = gltf.scene;
     transform(shoe);
     HandTrackerThreeHelper.add_threeObject(shoe);
   });
 
-  new THREE.GLTFLoader(three.loadingManager).load(
-    _settings.occluderPath,
-    function (gltf) {
-      const occluder = gltf.scene.children[0];
-      transform(occluder);
-      HandTrackerThreeHelper.add_threeOccluder(occluder);
-    },
-  );
+  loader.load(_settings.occluderPath, (gltf) => {
+    const occluder = gltf.scene.children[0];
+    transform(occluder);
+    HandTrackerThreeHelper.add_threeOccluder(occluder);
+  });
 }
-
-window.addEventListener("load", main);

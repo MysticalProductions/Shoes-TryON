@@ -9,13 +9,17 @@
 
         <!-- WEBARROCKS -->
         <script src="../../dist/WebARRocksHand.js"></script>
-        <script src="../../libs/three/v131/build/three.js"></script>
+
+        <!-- THREE (MINIFIED FOR PROD) -->
+        <script src="../../libs/three/v131/build/three.min.js"></script>
         <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
+        <script src="https://unpkg.com/three@0.131.3/examples/js/loaders/DRACOLoader.js"></script>
+
         <script src="../../helpers/HandTrackerThreeHelper.js"></script>
         <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
 
-        <!-- YOUR EXISTING AR ENGINE -->
-        <script src="main.js"></script>
+        <!-- AR ENGINE -->
+        <script defer src="main.js"></script>
     </head>
 
     <body>
@@ -30,38 +34,16 @@
                 <p>₹4,999</p>
                 <button onclick="openAR()">Try in AR</button>
             </div>
-
-            <div class="card">
-                <img
-                    src="https://images.unsplash.com/photo-1608231387042-66d1773070a5"
-                />
-                <h3>Urban Street Neo</h3>
-                <p>₹3,499</p>
-                <button onclick="openAR()">Try in AR</button>
-            </div>
-
-            <div class="card">
-                <img
-                    src="https://images.unsplash.com/photo-1528701800489-20be3c2ea8f1"
-                />
-                <h3>Aero Flex Run</h3>
-                <p>₹5,299</p>
-                <button onclick="openAR()">Try in AR</button>
-            </div>
-
-            <div class="card">
-                <img
-                    src="https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb"
-                />
-                <h3>Titan Grip Max</h3>
-                <p>₹6,199</p>
-                <button onclick="openAR()">Try in AR</button>
-            </div>
         </section>
 
-        <!-- AR MODAL (ALWAYS IN DOM) -->
+        <!-- AR MODAL -->
         <div id="overlay" class="overlay">
             <div class="arBox">
+                <div id="arLoader" class="arLoader">
+                    <div class="spinner"></div>
+                    <p>Initializing AR Engine...</p>
+                </div>
+
                 <button class="closeBtn" onclick="closeAR()">Close</button>
 
                 <canvas id="handTrackerCanvas"></canvas>
