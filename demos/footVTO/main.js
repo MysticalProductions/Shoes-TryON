@@ -86,20 +86,24 @@ function startThree(three) {
   }
 
   // ===== LOAD SHOE (Single Model → Clone for Left) =====
+  // ===== LOAD SHOE =====
+
+  if (!_settings.shoeRightPath) {
+    console.error("shoeRightPath is undefined");
+    return;
+  }
+
   loader.load(
     _settings.shoeRightPath,
     (gltf) => {
       const rightShoe = gltf.scene;
       const leftShoe = gltf.scene.clone(true);
 
-      // Right shoe
       transform(rightShoe);
 
-      // Left shoe (mirror)
       transform(leftShoe);
       leftShoe.scale.x *= -1;
 
-      // Fix material side for mirrored geometry
       leftShoe.traverse((obj) => {
         if (obj.isMesh) {
           if (Array.isArray(obj.material)) {
@@ -115,28 +119,27 @@ function startThree(three) {
     },
     undefined,
     (error) => {
-      console.error("Shoe load error:", error);
+      console.error("Error loading shoe:", error);
     },
   );
 
-  // ===== LOAD OCCLUDERS =====
-  loader.load(
-    _settings.occluderPath,
-    (gltf) => {
-      const occluderRight = gltf.scene.children[0];
-      const occluderLeft = occluderRight.clone();
+  // ===== LOAD OCCLUDER =====
 
-      transform(occluderRight);
+  if (!_settings.occluderPath) {
+    console.error("occluderPath is undefined");
+    return;
+  }
 
-      transform(occluderLeft);
-      occluderLeft.scale.x *= -1;
+  loader.load(_settings.occluderPath, (gltf) => {
+    const occluderRight = gltf.scene.children[0];
+    const occluderLeft = occluderRight.clone();
 
-      HandTrackerThreeHelper.add_threeOccluder(occluderRight);
-      HandTrackerThreeHelper.add_threeOccluder(occluderLeft);
-    },
-    undefined,
-    (error) => {
-      console.error("Occluder load error:", error);
-    },
-  );
+    transform(occluderRight);
+
+    transform(occluderLeft);
+    occluderLeft.scale.x *= -1;
+
+    HandTrackerThreeHelper.add_threeOccluder(occluderRight);
+    HandTrackerThreeHelper.add_threeOccluder(occluderLeft);
+  });
 }
