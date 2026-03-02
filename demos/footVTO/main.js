@@ -39,15 +39,20 @@ function initAR() {
       "bigToeBaseTop",
     ],
 
-    enableFlipObject: true,
+    enableFlipObject: true, // 👈 automatic left/right flip
     threshold: _settings.threshold,
-    maxHandsDetected: 2,
+    maxHandsDetected: 2, // 👈 detect both feet
 
     scanSettings: {
-      nScaleLevels: 1,
+      nScaleLevels: 2, // better stability
       scale0Factor: 0.6,
-      multiDetectionSearchSlotsRate: 0.3,
+      multiDetectionSearchSlotsRate: 0.4,
       disableIsRightHandNNEval: false,
+    },
+
+    landmarksStabilizerSpec: {
+      minCutOff: 0.001,
+      beta: 8, // 👈 smoother, less shaky
     },
 
     NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
@@ -64,7 +69,7 @@ function startThree(three) {
   const loaderEl = document.getElementById("arLoader");
   if (loaderEl) loaderEl.style.display = "none";
 
-  // Renderer setup
+  // Renderer configuration
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
@@ -85,61 +90,36 @@ function startThree(three) {
     obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
   }
 
-  // ===== LOAD SHOE (Single Model → Clone for Left) =====
-  // ===== LOAD SHOE =====
-
-  if (!_settings.shoeRightPath) {
-    console.error("shoeRightPath is undefined");
-    return;
-  }
-
+  // ===== LOAD SHOE (ONLY ONCE) =====
   loader.load(
     _settings.shoeRightPath,
     (gltf) => {
-      const rightShoe = gltf.scene;
-      const leftShoe = gltf.scene.clone(true);
+      const shoe = gltf.scene;
 
-      transform(rightShoe);
+      transform(shoe);
 
-      transform(leftShoe);
-      leftShoe.scale.x *= -1;
-
-      leftShoe.traverse((obj) => {
-        if (obj.isMesh) {
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => (m.side = THREE.DoubleSide));
-          } else {
-            obj.material.side = THREE.DoubleSide;
-          }
-        }
-      });
-
-      HandTrackerThreeHelper.add_threeObject(rightShoe);
-      HandTrackerThreeHelper.add_threeObject(leftShoe);
+      // Add once — helper duplicates per detected foot
+      HandTrackerThreeHelper.add_threeObject(shoe);
     },
     undefined,
     (error) => {
-      console.error("Error loading shoe:", error);
+      console.error("Shoe load error:", error);
     },
   );
 
-  // ===== LOAD OCCLUDER =====
+  // ===== LOAD OCCLUDER (ONLY ONCE) =====
+  loader.load(
+    _settings.occluderPath,
+    (gltf) => {
+      const occluder = gltf.scene.children[0];
 
-  if (!_settings.occluderPath) {
-    console.error("occluderPath is undefined");
-    return;
-  }
+      transform(occluder);
 
-  loader.load(_settings.occluderPath, (gltf) => {
-    const occluderRight = gltf.scene.children[0];
-    const occluderLeft = occluderRight.clone();
-
-    transform(occluderRight);
-
-    transform(occluderLeft);
-    occluderLeft.scale.x *= -1;
-
-    HandTrackerThreeHelper.add_threeOccluder(occluderRight);
-    HandTrackerThreeHelper.add_threeOccluder(occluderLeft);
-  });
+      HandTrackerThreeHelper.add_threeOccluder(occluder);
+    },
+    undefined,
+    (error) => {
+      console.error("Occluder load error:", error);
+    },
+  );
 }
