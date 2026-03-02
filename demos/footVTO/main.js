@@ -41,7 +41,8 @@ function initAR() {
 
     enableFlipObject: true,
     threshold: _settings.threshold,
-    maxHandsDetected: 1,
+    maxHandsDetected: 2,
+    disableIsRightHandNNEval: false,
 
     scanSettings: {
       nScaleLevels: 1, // Faster startup
@@ -80,15 +81,38 @@ function startThree(three) {
     obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
   }
 
-  loader.load(_settings.shoeRightPath, (gltf) => {
-    const shoe = gltf.scene;
-    transform(shoe);
-    HandTrackerThreeHelper.add_threeObject(shoe);
+  loader.load(_settings.shoePath, (gltf) => {
+    const rightShoe = gltf.scene;
+    const leftShoe = gltf.scene.clone(true);
+
+    // Normal right shoe
+    transform(rightShoe);
+
+    // Mirror for left shoe
+    transform(leftShoe);
+    leftShoe.scale.x *= -1;
+
+    // Fix material side (important for mirrored meshes)
+    leftShoe.traverse((obj) => {
+      if (obj.isMesh) {
+        obj.material.side = THREE.DoubleSide;
+      }
+    });
+
+    HandTrackerThreeHelper.add_threeObject(rightShoe);
+    HandTrackerThreeHelper.add_threeObject(leftShoe);
   });
 
   loader.load(_settings.occluderPath, (gltf) => {
-    const occluder = gltf.scene.children[0];
-    transform(occluder);
-    HandTrackerThreeHelper.add_threeOccluder(occluder);
+    const occluderRight = gltf.scene.children[0];
+    const occluderLeft = occluderRight.clone();
+
+    transform(occluderRight);
+
+    transform(occluderLeft);
+    occluderLeft.scale.x *= -1;
+
+    HandTrackerThreeHelper.add_threeOccluder(occluderRight);
+    HandTrackerThreeHelper.add_threeOccluder(occluderLeft);
   });
 }
