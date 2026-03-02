@@ -1,10 +1,10 @@
 let AR_INITIALIZED = false;
 
 const _settings = {
-  threshold: 0.85,
+  threshold: 0.9, // slightly higher = more confident detection
   NNVersion: 31,
 
-  shoeRightPath: "assets/shoe.glb", // DRACO compressed
+  shoeRightPath: "assets/shoe.glb",
   occluderPath: "assets/occluder.glb",
 
   scale: 0.95,
@@ -39,20 +39,22 @@ function initAR() {
       "bigToeBaseTop",
     ],
 
-    enableFlipObject: true, // 👈 automatic left/right flip
+    enableFlipObject: true, // automatic left/right handling
     threshold: _settings.threshold,
-    maxHandsDetected: 2, // 👈 detect both feet
+    maxHandsDetected: 2,
 
     scanSettings: {
-      nScaleLevels: 2, // better stability
+      nScaleLevels: 2, // more stable detection
       scale0Factor: 0.6,
-      multiDetectionSearchSlotsRate: 0.4,
+      multiDetectionSearchSlotsRate: 0.5, // more reliable search
       disableIsRightHandNNEval: false,
+      translationScalingFactors: [0.3, 0.3, 0.8], // reduce Z jitter
     },
 
+    // Stronger smoothing
     landmarksStabilizerSpec: {
-      minCutOff: 0.001,
-      beta: 8, // 👈 smoother, less shaky
+      minCutOff: 0.0005, // lower = smoother
+      beta: 12, // higher = smoother
     },
 
     NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
@@ -65,11 +67,10 @@ function initAR() {
 }
 
 function startThree(three) {
-  // Hide loader safely
   const loaderEl = document.getElementById("arLoader");
   if (loaderEl) loaderEl.style.display = "none";
 
-  // Renderer configuration
+  // Renderer tuning
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
@@ -88,9 +89,12 @@ function startThree(three) {
   function transform(obj) {
     obj.scale.multiplyScalar(_settings.scale);
     obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
+
+    // Prevent internal frustum recalculation jitter
+    obj.frustumCulled = false;
   }
 
-  // ===== LOAD SHOE (ONLY ONCE) =====
+  // ===== LOAD SHOE ONCE =====
   loader.load(
     _settings.shoeRightPath,
     (gltf) => {
@@ -98,7 +102,7 @@ function startThree(three) {
 
       transform(shoe);
 
-      // Add once — helper duplicates per detected foot
+      // Add once — helper duplicates internally per foot
       HandTrackerThreeHelper.add_threeObject(shoe);
     },
     undefined,
@@ -107,7 +111,7 @@ function startThree(three) {
     },
   );
 
-  // ===== LOAD OCCLUDER (ONLY ONCE) =====
+  // ===== LOAD OCCLUDER ONCE =====
   loader.load(
     _settings.occluderPath,
     (gltf) => {
