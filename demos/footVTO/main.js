@@ -8,7 +8,7 @@ let GLTF_LOADER = null;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
-  threshold: 0.7,
+  threshold: 0.75,
   NNVersion: 31,
   occluderPath: "assets/occluder.glb",
   scale: 0.95,
@@ -49,25 +49,25 @@ function initAR() {
 
         enableFlipObject: true,
         threshold: _settings.threshold,
-        maxHandsDetected: 2,
+        maxHandsDetected: 1, // performance boost
 
         videoSettings: {
           facingMode: "environment",
-          width: { ideal: isAndroid ? 640 : 960 },
-          height: { ideal: isAndroid ? 480 : 720 },
+          width: { ideal: isAndroid ? 480 : 720 },
+          height: { ideal: isAndroid ? 360 : 540 },
         },
 
         scanSettings: {
-          nScaleLevels: 4,
-          scale0Factor: 0.5,
-          multiDetectionSearchSlotsRate: 0.5,
-          disableIsRightHandNNEval: false,
-          translationScalingFactors: [0.3, 0.3, 1.2],
+          nScaleLevels: 3,
+          scale0Factor: 0.6,
+          multiDetectionSearchSlotsRate: 0.4,
+          disableIsRightHandNNEval: true,
+          translationScalingFactors: [0.25, 0.25, 1.0],
         },
 
         landmarksStabilizerSpec: {
-          minCutOff: 0.005,
-          beta: 10,
+          minCutOff: 0.01,
+          beta: 5,
         },
 
         NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
@@ -76,9 +76,9 @@ function initAR() {
         handTrackerCanvas,
       })
         .then(startThree)
-        .catch((err) => console.log("AR init error:", err));
+        .catch((err) => console.error("AR init error:", err));
     },
-    isAndroid ? 300 : 0,
+    isAndroid ? 150 : 0,
   );
 }
 
@@ -88,12 +88,19 @@ function startThree(three) {
   const loaderEl = document.getElementById("arLoader");
   if (loaderEl) loaderEl.style.display = "none";
 
+  // Renderer optimization
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
+  three.renderer.physicallyCorrectLights = true;
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.2);
   three.scene.add(ambient);
 
+  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+  directional.position.set(0, 2, 2);
+  three.scene.add(directional);
+
+  // GLTF Loader
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
@@ -110,27 +117,36 @@ function startThree(three) {
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
 
-  // Initial shoe
+  // Preload initial shoe
   loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
+}
+
+function disposeModel(model) {
+  model.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+
+    if (child.material) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach((m) => {
+          if (m.map) m.map.dispose();
+          m.dispose();
+        });
+      } else {
+        if (child.material.map) child.material.map.dispose();
+        child.material.dispose();
+      }
+    }
+  });
 }
 
 function loadShoe(modelPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
+  // Remove old shoe properly
   if (CURRENT_SHOE) {
+    HandTrackerThreeHelper.clear_threeObjects();
+    disposeModel(CURRENT_SHOE);
     THREE_CONTEXT.scene.remove(CURRENT_SHOE);
-
-    CURRENT_SHOE.traverse((child) => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose());
-        } else {
-          child.material.dispose();
-        }
-      }
-    });
-
     CURRENT_SHOE = null;
   }
 
@@ -141,9 +157,14 @@ function loadShoe(modelPath) {
 
       shoe.scale.multiplyScalar(_settings.scale);
       shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
-      shoe.frustumCulled = false;
+
+      shoe.traverse((child) => {
+        child.frustumCulled = false;
+        if (child.material) child.material.needsUpdate = true;
+      });
 
       CURRENT_SHOE = shoe;
+
       HandTrackerThreeHelper.add_threeObject(shoe);
     },
     undefined,
