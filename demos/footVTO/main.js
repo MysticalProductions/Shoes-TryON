@@ -117,8 +117,9 @@ function startThree(three) {
 function loadShoe(modelPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
+  // Properly remove previous shoe from helper
   if (CURRENT_SHOE) {
-    THREE_CONTEXT.scene.remove(CURRENT_SHOE);
+    HandTrackerThreeHelper.remove_threeObject(CURRENT_SHOE);
 
     CURRENT_SHOE.traverse((child) => {
       if (child.geometry) child.geometry.dispose();
@@ -144,6 +145,7 @@ function loadShoe(modelPath) {
       shoe.frustumCulled = false;
 
       CURRENT_SHOE = shoe;
+
       HandTrackerThreeHelper.add_threeObject(shoe);
     },
     undefined,
