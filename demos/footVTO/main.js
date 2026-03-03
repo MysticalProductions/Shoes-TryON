@@ -8,11 +8,11 @@ let GLTF_LOADER = null;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
-  threshold: 0.65,
+  threshold: 0.7,
   NNVersion: 31,
   occluderPath: "assets/occluder.glb",
   scale: 0.95,
-  translation: [0, -0.02, 0],
+  translation: [0, -0.015, 0],
 };
 
 function setFullScreen(cv) {
@@ -58,16 +58,16 @@ function initAR() {
         },
 
         scanSettings: {
-          nScaleLevels: 3,
-          scale0Factor: 0.3,
+          nScaleLevels: 4,
+          scale0Factor: 0.5,
           multiDetectionSearchSlotsRate: 0.5,
           disableIsRightHandNNEval: false,
-          translationScalingFactors: [0.3, 0.3, 1.0],
+          translationScalingFactors: [0.3, 0.3, 1.2],
         },
 
         landmarksStabilizerSpec: {
-          minCutOff: 0.0005,
-          beta: 12,
+          minCutOff: 0.005,
+          beta: 10,
         },
 
         NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
