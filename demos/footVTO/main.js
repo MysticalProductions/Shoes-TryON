@@ -3,8 +3,9 @@ window.AR_INITIALIZED = false;
 
 let THREE_CONTEXT = null;
 let GLTF_LOADER = null;
-
 let SHOE_CONTAINER = null;
+
+const DEBUG_AXES = true;
 
 const isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -93,7 +94,7 @@ function startThree(three) {
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
-  // 🔥 CREATE CONTAINER WITH TRANSFORM APPLIED
+  // Create container with transform
   SHOE_CONTAINER = new THREE.Object3D();
   SHOE_CONTAINER.scale.multiplyScalar(_settings.scale);
   SHOE_CONTAINER.position.add(
@@ -101,10 +102,15 @@ function startThree(three) {
   );
   SHOE_CONTAINER.frustumCulled = false;
 
-  // Register container ONCE
   HandTrackerThreeHelper.add_threeObject(SHOE_CONTAINER);
 
-  // Load first model
+  // Debug Axes
+  if (DEBUG_AXES) {
+    const axes = new THREE.AxesHelper(0.15);
+    SHOE_CONTAINER.add(axes);
+  }
+
+  // Load first shoe
   loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
 
   // Load occluder
@@ -140,10 +146,6 @@ function loadShoe(modelPath) {
     modelPath,
     (gltf) => {
       const shoe = gltf.scene;
-
-      // DO NOT scale or translate here anymore
-      // Container handles transform
-
       SHOE_CONTAINER.add(shoe);
     },
     undefined,
