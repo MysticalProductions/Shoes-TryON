@@ -8,7 +8,7 @@ let GLTF_LOADER = null;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
-  threshold: isAndroid ? 0.8 : 0.9,
+  threshold: 0.65,
   NNVersion: 31,
   occluderPath: "assets/occluder.glb",
   scale: 0.95,
@@ -58,11 +58,11 @@ function initAR() {
         },
 
         scanSettings: {
-          nScaleLevels: isAndroid ? 1 : 2,
-          scale0Factor: 0.6,
-          multiDetectionSearchSlotsRate: isAndroid ? 0.3 : 0.5,
+          nScaleLevels: 3,
+          scale0Factor: 0.3,
+          multiDetectionSearchSlotsRate: 0.5,
           disableIsRightHandNNEval: false,
-          translationScalingFactors: [0.3, 0.3, 0.8],
+          translationScalingFactors: [0.3, 0.3, 1.0],
         },
 
         landmarksStabilizerSpec: {
