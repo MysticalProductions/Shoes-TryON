@@ -1,12 +1,18 @@
-function openAR() {
+function openAR(modelPath) {
   const overlay = document.getElementById("overlay");
+  window.SELECTED_SHOE_MODEL = modelPath;
+
   overlay.classList.add("active");
   document.body.style.overflow = "hidden";
 
-  setTimeout(() => {
-    initAR();
-    window.dispatchEvent(new Event("resize"));
-  }, 200);
+  if (!window.AR_INITIALIZED) {
+    setTimeout(() => {
+      initAR();
+      window.dispatchEvent(new Event("resize"));
+    }, 200);
+  } else {
+    loadShoe(modelPath);
+  }
 }
 
 function closeAR() {

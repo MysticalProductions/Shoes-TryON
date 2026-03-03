@@ -1,14 +1,16 @@
 let AR_INITIALIZED = false;
+window.AR_INITIALIZED = false;
+
+let CURRENT_SHOE = null;
+let THREE_CONTEXT = null;
+let GLTF_LOADER = null;
 
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
   threshold: isAndroid ? 0.8 : 0.9,
   NNVersion: 31,
-
-  shoeRightPath: "assets/shoe.glb",
   occluderPath: "assets/occluder.glb",
-
   scale: 0.95,
   translation: [0, -0.02, 0],
 };
@@ -20,7 +22,9 @@ function setFullScreen(cv) {
 
 function initAR() {
   if (AR_INITIALIZED) return;
+
   AR_INITIALIZED = true;
+  window.AR_INITIALIZED = true;
 
   const handTrackerCanvas = document.getElementById("handTrackerCanvas");
   const VTOCanvas = document.getElementById("ARCanvas");
@@ -28,7 +32,6 @@ function initAR() {
   setFullScreen(handTrackerCanvas);
   setFullScreen(VTOCanvas);
 
-  // Small warm-up delay helps Android camera startup
   setTimeout(
     () => {
       HandTrackerThreeHelper.init({
@@ -48,7 +51,6 @@ function initAR() {
         threshold: _settings.threshold,
         maxHandsDetected: 2,
 
-        // 📱 Android camera optimization
         videoSettings: {
           facingMode: "environment",
           width: { ideal: isAndroid ? 640 : 960 },
@@ -63,7 +65,6 @@ function initAR() {
           translationScalingFactors: [0.3, 0.3, 0.8],
         },
 
-        // Strong smoothing to reduce jitter
         landmarksStabilizerSpec: {
           minCutOff: 0.0005,
           beta: 12,
@@ -82,59 +83,72 @@ function initAR() {
 }
 
 function startThree(three) {
+  THREE_CONTEXT = three;
+
   const loaderEl = document.getElementById("arLoader");
   if (loaderEl) loaderEl.style.display = "none";
 
-  // Renderer configuration
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.2);
   three.scene.add(ambient);
 
-  // ===== DRACO SETUP =====
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
   );
 
-  const loader = new THREE.GLTFLoader();
-  loader.setDRACOLoader(dracoLoader);
+  GLTF_LOADER = new THREE.GLTFLoader();
+  GLTF_LOADER.setDRACOLoader(dracoLoader);
 
-  function transform(obj) {
-    obj.scale.multiplyScalar(_settings.scale);
-    obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
-    obj.frustumCulled = false;
+  // Load occluder
+  GLTF_LOADER.load(_settings.occluderPath, (gltf) => {
+    const occluder = gltf.scene.children[0];
+    occluder.scale.multiplyScalar(_settings.scale);
+    occluder.position.add(new THREE.Vector3().fromArray(_settings.translation));
+    HandTrackerThreeHelper.add_threeOccluder(occluder);
+  });
+
+  // Initial shoe
+  loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
+}
+
+function loadShoe(modelPath) {
+  if (!THREE_CONTEXT || !GLTF_LOADER) return;
+
+  if (CURRENT_SHOE) {
+    THREE_CONTEXT.scene.remove(CURRENT_SHOE);
+
+    CURRENT_SHOE.traverse((child) => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m) => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
+
+    CURRENT_SHOE = null;
   }
 
-  // ===== LOAD SHOE (ONLY ONCE) =====
-  loader.load(
-    _settings.shoeRightPath,
+  GLTF_LOADER.load(
+    modelPath,
     (gltf) => {
       const shoe = gltf.scene;
-      transform(shoe);
 
-      // Helper duplicates automatically per detected foot
+      shoe.scale.multiplyScalar(_settings.scale);
+      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
+      shoe.frustumCulled = false;
+
+      CURRENT_SHOE = shoe;
       HandTrackerThreeHelper.add_threeObject(shoe);
     },
     undefined,
     (error) => {
-      console.error("Shoe load error:", error);
-    },
-  );
-
-  // ===== LOAD OCCLUDER (ONLY ONCE) =====
-  loader.load(
-    _settings.occluderPath,
-    (gltf) => {
-      const occluder = gltf.scene.children[0];
-      transform(occluder);
-
-      HandTrackerThreeHelper.add_threeOccluder(occluder);
-    },
-    undefined,
-    (error) => {
-      console.error("Occluder load error:", error);
+      console.error("Model load error:", error);
     },
   );
 }

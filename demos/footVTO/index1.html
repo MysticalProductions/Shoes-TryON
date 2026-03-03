@@ -10,7 +10,7 @@
         <!-- WEBARROCKS -->
         <script src="../../dist/WebARRocksHand.js"></script>
 
-        <!-- THREE (MINIFIED FOR PROD) -->
+        <!-- THREE -->
         <script src="../../libs/three/v131/build/three.min.js"></script>
         <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
         <script src="https://unpkg.com/three@0.131.3/examples/js/loaders/DRACOLoader.js"></script>
@@ -26,13 +26,24 @@
         <header>VTO Shoe Store</header>
 
         <section class="products">
+            <!-- Shoe 1 -->
             <div class="card">
-                <img
-                    src="https://images.unsplash.com/photo-1542291026-7eec264c27ff"
-                />
-                <h3>Velocity X Pro</h3>
-                <p>₹4,999</p>
-                <button onclick="openAR()">Try in AR</button>
+                <div class="imgBox">
+                    <img src="assets/shoe1.png" alt="Velocity X Pro" />
+                </div>
+                <h3>Nike Dunk Low Retro</h3>
+                <p>₹8,200</p>
+                <button onclick="openAR('assets/shoe1.glb')">Try in AR</button>
+            </div>
+
+            <!-- Shoe 2 -->
+            <div class="card">
+                <div class="imgBox">
+                    <img src="assets/shoe2.png" alt="Urban Sprint Max" />
+                </div>
+                <h3>Nike Air Jordan 1 High</h3>
+                <p>₹25,499</p>
+                <button onclick="openAR('assets/shoe2.glb')">Try in AR</button>
             </div>
         </section>
 
