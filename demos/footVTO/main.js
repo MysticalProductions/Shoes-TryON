@@ -49,7 +49,7 @@ function initAR() {
 
         enableFlipObject: true,
         threshold: _settings.threshold,
-        maxHandsDetected: 1, // performance boost
+        maxHandsDetected: 2, // performance boost
 
         videoSettings: {
           facingMode: "environment",
