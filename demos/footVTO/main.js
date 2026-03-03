@@ -1,9 +1,10 @@
 let AR_INITIALIZED = false;
 window.AR_INITIALIZED = false;
 
-let CURRENT_SHOE = null;
 let THREE_CONTEXT = null;
 let GLTF_LOADER = null;
+
+let SHOE_CONTAINER = null;
 
 const isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -46,32 +47,15 @@ function initAR() {
           "middleToeBaseTop",
           "bigToeBaseTop",
         ],
-
         enableFlipObject: true,
         threshold: _settings.threshold,
         maxHandsDetected: 2,
-
         videoSettings: {
           facingMode: "environment",
           width: { ideal: isAndroid ? 640 : 960 },
           height: { ideal: isAndroid ? 480 : 720 },
         },
-
-        scanSettings: {
-          nScaleLevels: isAndroid ? 1 : 2,
-          scale0Factor: 0.6,
-          multiDetectionSearchSlotsRate: isAndroid ? 0.3 : 0.5,
-          disableIsRightHandNNEval: false,
-          translationScalingFactors: [0.3, 0.3, 0.8],
-        },
-
-        landmarksStabilizerSpec: {
-          minCutOff: 0.0005,
-          beta: 12,
-        },
-
         NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
-
         VTOCanvas,
         handTrackerCanvas,
       })
@@ -94,6 +78,13 @@ function startThree(three) {
   const ambient = new THREE.AmbientLight(0xffffff, 1.2);
   three.scene.add(ambient);
 
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+  three.scene.add(hemiLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  dirLight.position.set(0, 5, 5);
+  three.scene.add(dirLight);
+
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
@@ -102,6 +93,14 @@ function startThree(three) {
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
+  // Create ONE container and register it once
+  SHOE_CONTAINER = new THREE.Object3D();
+  SHOE_CONTAINER.frustumCulled = false;
+
+  HandTrackerThreeHelper.add_threeObject(SHOE_CONTAINER);
+
+  loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
+
   // Load occluder
   GLTF_LOADER.load(_settings.occluderPath, (gltf) => {
     const occluder = gltf.scene.children[0];
@@ -109,30 +108,26 @@ function startThree(three) {
     occluder.position.add(new THREE.Vector3().fromArray(_settings.translation));
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
-
-  // Initial shoe
-  loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
 }
 
 function loadShoe(modelPath) {
-  if (!THREE_CONTEXT || !GLTF_LOADER) return;
+  if (!GLTF_LOADER || !SHOE_CONTAINER) return;
 
-  // Properly remove previous shoe from helper
-  if (CURRENT_SHOE) {
-    HandTrackerThreeHelper.remove_threeObject(CURRENT_SHOE);
+  // Remove previous children
+  while (SHOE_CONTAINER.children.length > 0) {
+    const child = SHOE_CONTAINER.children[0];
+    SHOE_CONTAINER.remove(child);
 
-    CURRENT_SHOE.traverse((child) => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose());
+    child.traverse((c) => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) {
+        if (Array.isArray(c.material)) {
+          c.material.forEach((m) => m.dispose());
         } else {
-          child.material.dispose();
+          c.material.dispose();
         }
       }
     });
-
-    CURRENT_SHOE = null;
   }
 
   GLTF_LOADER.load(
@@ -142,11 +137,8 @@ function loadShoe(modelPath) {
 
       shoe.scale.multiplyScalar(_settings.scale);
       shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
-      shoe.frustumCulled = false;
 
-      CURRENT_SHOE = shoe;
-
-      HandTrackerThreeHelper.add_threeObject(shoe);
+      SHOE_CONTAINER.add(shoe);
     },
     undefined,
     (error) => {
