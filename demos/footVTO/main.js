@@ -93,12 +93,18 @@ function startThree(three) {
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
-  // Create ONE container and register it once
+  // 🔥 CREATE CONTAINER WITH TRANSFORM APPLIED
   SHOE_CONTAINER = new THREE.Object3D();
+  SHOE_CONTAINER.scale.multiplyScalar(_settings.scale);
+  SHOE_CONTAINER.position.add(
+    new THREE.Vector3().fromArray(_settings.translation),
+  );
   SHOE_CONTAINER.frustumCulled = false;
 
+  // Register container ONCE
   HandTrackerThreeHelper.add_threeObject(SHOE_CONTAINER);
 
+  // Load first model
   loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
 
   // Load occluder
@@ -113,7 +119,7 @@ function startThree(three) {
 function loadShoe(modelPath) {
   if (!GLTF_LOADER || !SHOE_CONTAINER) return;
 
-  // Remove previous children
+  // Remove old model
   while (SHOE_CONTAINER.children.length > 0) {
     const child = SHOE_CONTAINER.children[0];
     SHOE_CONTAINER.remove(child);
@@ -135,8 +141,8 @@ function loadShoe(modelPath) {
     (gltf) => {
       const shoe = gltf.scene;
 
-      shoe.scale.multiplyScalar(_settings.scale);
-      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
+      // DO NOT scale or translate here anymore
+      // Container handles transform
 
       SHOE_CONTAINER.add(shoe);
     },
