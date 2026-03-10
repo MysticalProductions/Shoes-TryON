@@ -7,61 +7,106 @@
 
         <link rel="stylesheet" href="style.css" />
 
-        <!-- WEBARROCKS -->
-        <script src="../../dist/WebARRocksHand.js"></script>
+        <style>
+            .modeToggle {
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-weight: 600;
+            }
 
-        <!-- THREE -->
-        <script src="../../libs/three/v131/build/three.min.js"></script>
-        <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
-        <script src="https://unpkg.com/three@0.131.3/examples/js/loaders/DRACOLoader.js"></script>
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 52px;
+                height: 28px;
+            }
 
-        <script src="../../helpers/HandTrackerThreeHelper.js"></script>
-        <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
 
-        <!-- AR ENGINE -->
-        <script defer src="main.js"></script>
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                inset: 0;
+                background: #ccc;
+                border-radius: 34px;
+                transition: 0.3s;
+            }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 22px;
+                width: 22px;
+                left: 3px;
+                bottom: 3px;
+                background: white;
+                border-radius: 50%;
+                transition: 0.3s;
+            }
+
+            input:checked + .slider {
+                background: #1c3e83;
+            }
+
+            input:checked + .slider:before {
+                transform: translateX(24px);
+            }
+        </style>
     </head>
 
     <body>
         <header>VTO Shoe Store</header>
 
         <section class="products">
-            <!-- Shoe 1 -->
             <div class="card">
                 <div class="imgBox">
-                    <img src="assets/shoe1.png" alt="Velocity X Pro" />
+                    <img src="assets/shoe1.png" />
                 </div>
                 <h3>Nike Dunk Low Retro</h3>
                 <p>₹8,200</p>
-                <button onclick="openAR('assets/shoe1.glb')">Try in AR</button>
+                <button onclick="openAR('shoe1.glb')">Try in AR</button>
             </div>
 
-            <!-- Shoe 2 -->
             <div class="card">
                 <div class="imgBox">
-                    <img src="assets/shoe2.png" alt="Urban Sprint Max" />
+                    <img src="assets/shoe2.png" />
                 </div>
                 <h3>Nike Air Jordan 1 High</h3>
                 <p>₹25,499</p>
-                <button onclick="openAR('assets/shoe2.glb')">Try in AR</button>
+                <button onclick="openAR('shoe2.glb')">Try in AR</button>
             </div>
         </section>
 
-        <!-- AR MODAL -->
-        <div id="overlay" class="overlay">
-            <div class="arBox">
-                <div id="arLoader" class="arLoader">
-                    <div class="spinner"></div>
-                    <p>Initializing AR Engine...</p>
-                </div>
+        <div class="modeToggle">
+            <span>With Shoes</span>
 
-                <button class="closeBtn" onclick="closeAR()">Close</button>
+            <label class="switch">
+                <input type="checkbox" id="modeToggle" />
+                <span class="slider"></span>
+            </label>
 
-                <canvas id="handTrackerCanvas"></canvas>
-                <canvas id="ARCanvas"></canvas>
-            </div>
+            <span>Barefoot</span>
         </div>
 
-        <script src="script.js"></script>
+        <script>
+            function openAR(model) {
+                const toggle = document.getElementById("modeToggle");
+
+                if (toggle.checked) {
+                    window.location.href = "ar-barefoot.html?model=" + model;
+                } else {
+                    window.location.href = "ar-foot.html?model=" + model;
+                }
+            }
+        </script>
     </body>
 </html>
