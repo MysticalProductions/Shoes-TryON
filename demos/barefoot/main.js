@@ -139,7 +139,7 @@ function loadShoe(modelPath) {
     const left = right.clone(true);
 
     // mirror for left shoe
-    left.scale.x *= -1;
+    // left.scale.x *= -1;
 
     right.scale.multiplyScalar(_settings.scale);
     left.scale.multiplyScalar(_settings.scale);
