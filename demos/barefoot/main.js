@@ -123,35 +123,41 @@ function disposeModel(model) {
 function loadShoe(modelPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  if (RIGHT_SHOE) {
+  if (CURRENT_SHOE) {
     HandTrackerThreeHelper.clear_threeObjects();
 
-    disposeModel(RIGHT_SHOE);
-    disposeModel(LEFT_SHOE);
+    disposeModel(CURRENT_SHOE);
 
-    RIGHT_SHOE = null;
-    LEFT_SHOE = null;
+    THREE_CONTEXT.scene.remove(CURRENT_SHOE);
+
+    CURRENT_SHOE = null;
   }
 
-  GLTF_LOADER.load(modelPath, (gltf) => {
-    const right = gltf.scene;
+  GLTF_LOADER.load(
+    modelPath,
 
-    const left = right.clone(true);
+    (gltf) => {
+      const shoe = gltf.scene;
 
-    // mirror for left shoe
-    // left.scale.x *= -1;
+      shoe.scale.multiplyScalar(_settings.scale);
 
-    right.scale.multiplyScalar(_settings.scale);
-    left.scale.multiplyScalar(_settings.scale);
+      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
 
-    right.position.add(new THREE.Vector3().fromArray(_settings.translation));
-    left.position.add(new THREE.Vector3().fromArray(_settings.translation));
+      shoe.traverse((child) => {
+        child.frustumCulled = false;
+        if (child.material) child.material.needsUpdate = true;
+      });
 
-    RIGHT_SHOE = right;
-    LEFT_SHOE = left;
+      CURRENT_SHOE = shoe;
 
-    // FIX: attach to separate detection slots
-    HandTrackerThreeHelper.add_threeObject(RIGHT_SHOE, { poseIndex: 0 });
-    HandTrackerThreeHelper.add_threeObject(LEFT_SHOE, { poseIndex: 1 });
-  });
+      // IMPORTANT: only add ONE object
+      HandTrackerThreeHelper.add_threeObject(shoe);
+    },
+
+    undefined,
+
+    (error) => {
+      console.error("Model load error:", error);
+    },
+  );
 }
