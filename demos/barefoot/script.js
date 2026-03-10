@@ -11,7 +11,7 @@ function openAR(modelPath) {
       window.dispatchEvent(new Event("resize"));
     }, 200);
   } else {
-    loadShoe(modelPath);
+    loadShoes(modelPath); // corrected function
   }
 }
 
