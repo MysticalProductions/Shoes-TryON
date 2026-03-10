@@ -8,9 +8,9 @@ let RIGHT_SHOE = null;
 let LEFT_SHOE = null;
 
 const _settings = {
-  threshold: 0.7,
-  scale: 1,
-  translation: [0, -0.02, 0],
+  threshold: 0.75,
+  scale: 0.95,
+  translation: [0, -0.015, 0],
   occluderPath: "assets/occluder.glb",
 };
 
@@ -48,7 +48,6 @@ function initAR() {
     enableFlipObject: true,
 
     threshold: _settings.threshold,
-
     maxHandsDetected: 2,
 
     VTOCanvas,
@@ -76,10 +75,12 @@ function startThree(three) {
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  const light = new THREE.PointLight(0xffffff, 1.5);
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
 
-  three.scene.add(ambient, light);
+  directional.position.set(0, 2, 2);
+
+  three.scene.add(ambient, directional);
 
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
@@ -89,7 +90,7 @@ function startThree(three) {
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
-  GLTF_LOADER.load(_settings.occluderPath, function (gltf) {
+  GLTF_LOADER.load(_settings.occluderPath, (gltf) => {
     const occluder = gltf.scene.children[0];
 
     occluder.scale.multiplyScalar(_settings.scale);
@@ -120,38 +121,40 @@ function disposeModel(model) {
 }
 
 function loadShoe(modelPath) {
-  if (!GLTF_LOADER) return;
+  if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  // remove previous shoes
   if (RIGHT_SHOE) {
     HandTrackerThreeHelper.clear_threeObjects();
 
     disposeModel(RIGHT_SHOE);
     disposeModel(LEFT_SHOE);
 
+    THREE_CONTEXT.scene.remove(RIGHT_SHOE);
+    THREE_CONTEXT.scene.remove(LEFT_SHOE);
+
     RIGHT_SHOE = null;
     LEFT_SHOE = null;
   }
 
-  GLTF_LOADER.load(modelPath, function (gltf) {
+  GLTF_LOADER.load(modelPath, (gltf) => {
     const right = gltf.scene;
 
     const left = right.clone(true);
 
-    // mirror for left foot
+    // mirror for left shoe
     left.scale.x *= -1;
 
     right.scale.multiplyScalar(_settings.scale);
     left.scale.multiplyScalar(_settings.scale);
 
     right.position.add(new THREE.Vector3().fromArray(_settings.translation));
-
     left.position.add(new THREE.Vector3().fromArray(_settings.translation));
 
     RIGHT_SHOE = right;
     LEFT_SHOE = left;
 
-    HandTrackerThreeHelper.add_threeObject(RIGHT_SHOE);
-    HandTrackerThreeHelper.add_threeObject(LEFT_SHOE);
+    // attach to different detected feet
+    HandTrackerThreeHelper.add_threeObject(RIGHT_SHOE, 0);
+    HandTrackerThreeHelper.add_threeObject(LEFT_SHOE, 1);
   });
 }
