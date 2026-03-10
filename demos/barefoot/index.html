@@ -1,27 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html>
     <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Shoe Store AR</title>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="en-EN" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
 
+        <title>BAREFOOT VTO</title>
         <link rel="stylesheet" href="style.css" />
 
-        <!-- WEBARROCKS -->
+        <!-- INCLUDE WEBARROCKSHAND SCRIPT -->
         <script src="../../dist/WebARRocksHand.js"></script>
 
-        <!-- THREE -->
-        <script src="../../libs/three/v131/build/three.min.js"></script>
+        <!-- THREE.JS - REPLACE IT BY three.min.js FOR PROD -->
+        <script src="../../libs/three/v131/build/three.js"></script>
+
+        <!-- THREE.JS HELPERS -->
         <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
+
+        <!-- WEBARROCKSHAND THREEJS VTO HELPER -->
+        <script src="../../helpers/HandTrackerThreeHelper.js"></script>
+
+        <!-- INCLUDE LANDMARKS STABILIZER -->
+        <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
         <script src="https://unpkg.com/three@0.131.3/examples/js/loaders/DRACOLoader.js"></script>
 
-        <script src="../../helpers/HandTrackerThreeHelper.js"></script>
-        <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
+        <!-- POSEFLIP FILTER -->
         <script src="../../helpers/PoseFlipFilter.js"></script>
-        <!-- AR ENGINE -->
-        <script defer src="main.js"></script>
-    </head>
 
+        <!-- INCLUDE MAIN DEMO SCRIPT -->
+        <script src="./main.js"></script>
+    </head>
     <body>
         <header>VTO Shoe Store</header>
 
