@@ -1,6 +1,9 @@
-function openAR(modelPath) {
+function openAR(leftPath, rightPath) {
   const overlay = document.getElementById("overlay");
-  window.SELECTED_SHOE_MODEL = modelPath;
+
+  // Store both paths globally for the initAR process
+  window.SELECTED_LEFT_SHOE = leftPath;
+  window.SELECTED_RIGHT_SHOE = rightPath;
 
   overlay.classList.add("active");
   document.body.style.overflow = "hidden";
@@ -11,7 +14,8 @@ function openAR(modelPath) {
       window.dispatchEvent(new Event("resize"));
     }, 200);
   } else {
-    loadShoe(modelPath); // corrected function
+    // If already initialized, call the dual loader
+    loadShoes(leftPath, rightPath);
   }
 }
 
