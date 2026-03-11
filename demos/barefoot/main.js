@@ -73,11 +73,14 @@ function startThree(three) {
   directional.position.set(0, 2, 2);
   three.scene.add(ambient, directional);
 
+  // 1. Setup Draco Loader
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
   );
 
+  // 2. Setup GLTF Loader and ATTACH Draco loader
+  // This makes Draco optional: standard GLBs will load normally
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
@@ -89,7 +92,6 @@ function startThree(three) {
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
 
-  // Initial load of the shoes selected in the UI
   if (window.SELECTED_LEFT_SHOE && window.SELECTED_RIGHT_SHOE) {
     loadShoes(window.SELECTED_LEFT_SHOE, window.SELECTED_RIGHT_SHOE);
   }
