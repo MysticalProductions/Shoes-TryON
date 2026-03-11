@@ -1,21 +1,27 @@
 function openAR(leftPath, rightPath) {
   const overlay = document.getElementById("overlay");
 
-  // Store both paths globally for the initAR process
+  // Store paths globally so main.js can grab them after init
   window.SELECTED_LEFT_SHOE = leftPath;
   window.SELECTED_RIGHT_SHOE = rightPath;
 
   overlay.classList.add("active");
   document.body.style.overflow = "hidden";
 
-  if (!window.AR_INITIALIZED) {
-    setTimeout(() => {
-      initAR();
-      window.dispatchEvent(new Event("resize"));
-    }, 200);
+  // Check if initAR exists (defined in main.js)
+  if (typeof initAR === "function") {
+    if (!window.AR_INITIALIZED) {
+      setTimeout(() => {
+        initAR();
+        window.dispatchEvent(new Event("resize"));
+      }, 200);
+    } else {
+      loadShoes(leftPath, rightPath);
+    }
   } else {
-    // If already initialized, call the dual loader
-    loadShoes(leftPath, rightPath);
+    console.error(
+      "Critical: initAR is not defined. Check if main.js is loading correctly.",
+    );
   }
 }
 

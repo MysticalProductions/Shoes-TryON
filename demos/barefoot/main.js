@@ -13,7 +13,52 @@ const _settings = {
   occluderPath: "assets/occluder.glb",
 };
 
-// ... keep setFullScreen and initAR functions the same as previous versions ...
+function setFullScreen(cv) {
+  cv.width = cv.clientWidth;
+  cv.height = cv.clientHeight;
+}
+
+function initAR() {
+  if (AR_INITIALIZED) return;
+
+  AR_INITIALIZED = true;
+  window.AR_INITIALIZED = true;
+
+  const handTrackerCanvas = document.getElementById("handTrackerCanvas");
+  const VTOCanvas = document.getElementById("ARCanvas");
+
+  setFullScreen(handTrackerCanvas);
+  setFullScreen(VTOCanvas);
+
+  HandTrackerThreeHelper.init({
+    poseLandmarksLabels: [
+      "ankleBack",
+      "ankleOut",
+      "ankleIn",
+      "ankleFront",
+      "heelBackOut",
+      "heelBackIn",
+      "pinkyToeBaseTop",
+      "middleToeBaseTop",
+      "bigToeBaseTop",
+    ],
+    poseFilter: PoseFlipFilter.instance({}),
+    enableFlipObject: true,
+    threshold: _settings.threshold,
+    maxHandsDetected: 2, // Allow tracking of two feet
+    VTOCanvas,
+    handTrackerCanvas,
+    NNsPaths: ["../../neuralNets/NN_BAREFOOT_3.json"],
+    landmarksStabilizerSpec: {
+      minCutOff: 0.01,
+      beta: 5,
+    },
+  })
+    .then(startThree)
+    .catch((err) => {
+      console.error("AR init error:", err);
+    });
+}
 
 function startThree(three) {
   THREE_CONTEXT = three;
@@ -36,7 +81,7 @@ function startThree(three) {
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
-  // Load Occluder
+  // Load the Occluder
   GLTF_LOADER.load(_settings.occluderPath, (gltf) => {
     const occluder = gltf.scene.children[0];
     occluder.scale.multiplyScalar(_settings.scale);
@@ -44,7 +89,7 @@ function startThree(three) {
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
 
-  // Start the dual shoe loading process
+  // Initial load of the shoes selected in the UI
   if (window.SELECTED_LEFT_SHOE && window.SELECTED_RIGHT_SHOE) {
     loadShoes(window.SELECTED_LEFT_SHOE, window.SELECTED_RIGHT_SHOE);
   }
@@ -53,40 +98,34 @@ function startThree(three) {
 function loadShoes(leftPath, rightPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  // Cleanup existing objects
+  // Clean up
   HandTrackerThreeHelper.clear_threeObjects();
   if (CURRENT_LEFT_SHOE) disposeModel(CURRENT_LEFT_SHOE);
   if (CURRENT_RIGHT_SHOE) disposeModel(CURRENT_RIGHT_SHOE);
 
-  // Load both files in parallel
-  const promiseLeft = new Promise((resolve) =>
-    GLTF_LOADER.load(leftPath, resolve),
-  );
-  const promiseRight = new Promise((resolve) =>
-    GLTF_LOADER.load(rightPath, resolve),
-  );
+  // Load both GLBs in parallel
+  const loadLeft = new Promise((res) => GLTF_LOADER.load(leftPath, res));
+  const loadRight = new Promise((res) => GLTF_LOADER.load(rightPath, res));
 
-  Promise.all([promiseLeft, promiseRight])
-    .then(([leftGltf, rightGltf]) => {
-      CURRENT_LEFT_SHOE = leftGltf.scene;
-      CURRENT_RIGHT_SHOE = rightGltf.scene;
+  Promise.all([loadLeft, loadRight]).then(([leftGltf, rightGltf]) => {
+    CURRENT_LEFT_SHOE = leftGltf.scene;
+    CURRENT_RIGHT_SHOE = rightGltf.scene;
 
-      [CURRENT_LEFT_SHOE, CURRENT_RIGHT_SHOE].forEach((shoe) => {
-        shoe.scale.multiplyScalar(_settings.scale);
-        shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
-        shoe.traverse((child) => {
-          child.frustumCulled = false;
-          if (child.material) child.material.needsUpdate = true;
-        });
+    [CURRENT_LEFT_SHOE, CURRENT_RIGHT_SHOE].forEach((shoe) => {
+      shoe.scale.multiplyScalar(_settings.scale);
+      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
+      shoe.traverse((child) => {
+        child.frustumCulled = false;
+        if (child.material) child.material.needsUpdate = true;
       });
+    });
 
-      // Map [Left Shoe, Right Shoe] to [First detected foot, Second detected foot]
-      HandTrackerThreeHelper.add_threeObjects([
-        CURRENT_LEFT_SHOE,
-        CURRENT_RIGHT_SHOE,
-      ]);
-    })
-    .catch((err) => console.error("Error loading shoe models:", err));
+    // Maps [Left, Right] to [Detection 1, Detection 2]
+    HandTrackerThreeHelper.add_threeObjects([
+      CURRENT_LEFT_SHOE,
+      CURRENT_RIGHT_SHOE,
+    ]);
+  });
 }
 
 function disposeModel(model) {
