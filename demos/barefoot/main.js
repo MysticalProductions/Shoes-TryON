@@ -6,9 +6,9 @@ let GLTF_LOADER = null;
 let CURRENT_SHOE = null;
 
 const _settings = {
-  threshold: 0.6, // Based on official script
+  threshold: 0.6,
   scale: 1,
-  translation: [0, -0.02, 0], // Z -> vertical, Y+ -> front
+  translation: [0, -0.02, 0],
   occluderPath: "assets/occluder.glb",
 };
 
@@ -41,11 +41,9 @@ function initAR() {
       "bigToeBaseTop",
     ],
     poseFilter: PoseFlipFilter.instance({}),
-    enableFlipObject: true, // CRITICAL: This mirrors the right shoe for the left foot
+    enableFlipObject: true,
     threshold: _settings.threshold,
-    maxHandsDetected: 2, // Allows tracking both feet
-
-    // Official scan settings for multi-detection
+    maxHandsDetected: 2,
     scanSettings: {
       multiDetectionSearchSlotsRate: 0.5,
       multiDetectionMaxOverlap: 0.3,
@@ -59,7 +57,6 @@ function initAR() {
       nScaleLevels: 2,
       scale0Factor: 0.5,
     },
-
     VTOCanvas: VTOCanvas,
     handTrackerCanvas: handTrackerCanvas,
     NNsPaths: ["../../neuralNets/NN_BAREFOOT_3.json"],
@@ -82,37 +79,39 @@ function startThree(three) {
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
 
-  // Add Lighting
-  const pointLight = new THREE.PointLight(0xffffff, 2);
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-  three.scene.add(pointLight, ambientLight);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(0, 2, 2);
+  three.scene.add(ambientLight, directionalLight);
+
+  // Correct DRACO initialization
+  const dracoLoader = new THREE.DRACOLoader();
+  dracoLoader.setDecoderPath(
+    "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
+  );
 
   GLTF_LOADER = new THREE.GLTFLoader();
+  GLTF_LOADER.setDRACOLoader(dracoLoader); // Fixes "No DRACOLoader instance" error
 
-  // Load Occluder
   GLTF_LOADER.load(_settings.occluderPath, function (gltf) {
     const occluder = gltf.scene.children[0];
     applyTransform(occluder);
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
 
-  // Load Initial Shoe selected from UI
   if (window.SELECTED_SHOE_MODEL) {
     loadShoe(window.SELECTED_SHOE_MODEL);
   }
 }
 
-function applyTransform(threeObject) {
-  threeObject.scale.multiplyScalar(_settings.scale);
-  threeObject.position.add(
-    new THREE.Vector3().fromArray(_settings.translation),
-  );
+function applyTransform(obj) {
+  obj.scale.multiplyScalar(_settings.scale);
+  obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
 }
 
 function loadShoe(modelPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  // Cleanup previous model
   if (CURRENT_SHOE) {
     HandTrackerThreeHelper.clear_threeObjects();
     THREE_CONTEXT.scene.remove(CURRENT_SHOE);
@@ -121,9 +120,6 @@ function loadShoe(modelPath) {
   GLTF_LOADER.load(modelPath, function (gltf) {
     CURRENT_SHOE = gltf.scene;
     applyTransform(CURRENT_SHOE);
-
-    // HandTrackerThreeHelper.add_threeObject(shoe) automatically handles
-    // multiple detections when enableFlipObject is true
-    HandTrackerThreeHelper.add_threeObject(CURRENT_SHOE);
+    HandTrackerThreeHelper.add_threeObject(CURRENT_SHOE); // Engine handles mirroring
   });
 }
