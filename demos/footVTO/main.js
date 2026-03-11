@@ -8,7 +8,7 @@ let GLTF_LOADER = null;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
-  threshold: 0.9, // Detection sensitivity from shared code
+  threshold: 0.7, // Detection sensitivity from shared code
   NNVersion: 31, // Best version from shared code
   occluderPath: "assets/occluder.glb",
   scale: 0.95,
