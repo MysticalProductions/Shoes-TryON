@@ -100,34 +100,36 @@ function startThree(three) {
 function loadShoes(leftPath, rightPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  // Clean up
+  // 1. Clean up existing objects
   HandTrackerThreeHelper.clear_threeObjects();
   if (CURRENT_LEFT_SHOE) disposeModel(CURRENT_LEFT_SHOE);
   if (CURRENT_RIGHT_SHOE) disposeModel(CURRENT_RIGHT_SHOE);
 
-  // Load both GLBs in parallel
+  // 2. Load both GLBs in parallel
   const loadLeft = new Promise((res) => GLTF_LOADER.load(leftPath, res));
   const loadRight = new Promise((res) => GLTF_LOADER.load(rightPath, res));
 
-  Promise.all([loadLeft, loadRight]).then(([leftGltf, rightGltf]) => {
-    CURRENT_LEFT_SHOE = leftGltf.scene;
-    CURRENT_RIGHT_SHOE = rightGltf.scene;
+  Promise.all([loadLeft, loadRight])
+    .then(([leftGltf, rightGltf]) => {
+      CURRENT_LEFT_SHOE = leftGltf.scene;
+      CURRENT_RIGHT_SHOE = rightGltf.scene;
 
-    [CURRENT_LEFT_SHOE, CURRENT_RIGHT_SHOE].forEach((shoe) => {
-      shoe.scale.multiplyScalar(_settings.scale);
-      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
-      shoe.traverse((child) => {
-        child.frustumCulled = false;
-        if (child.material) child.material.needsUpdate = true;
+      [CURRENT_LEFT_SHOE, CURRENT_RIGHT_SHOE].forEach((shoe) => {
+        shoe.scale.multiplyScalar(_settings.scale);
+        shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
+        shoe.traverse((child) => {
+          child.frustumCulled = false;
+          if (child.material) child.material.needsUpdate = true;
+        });
       });
-    });
 
-    // Maps [Left, Right] to [Detection 1, Detection 2]
-    HandTrackerThreeHelper.add_threeObjects([
-      CURRENT_LEFT_SHOE,
-      CURRENT_RIGHT_SHOE,
-    ]);
-  });
+      // 3. Manually assign each shoe to a detection index
+      // Index 0 = First foot detected (usually assigned as Left)
+      // Index 1 = Second foot detected (usually assigned as Right)
+      HandTrackerThreeHelper.add_threeObject(CURRENT_LEFT_SHOE, 0);
+      HandTrackerThreeHelper.add_threeObject(CURRENT_RIGHT_SHOE, 1);
+    })
+    .catch((err) => console.error("Loading error:", err));
 }
 
 function disposeModel(model) {
