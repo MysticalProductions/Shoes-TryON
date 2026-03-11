@@ -8,16 +8,25 @@ let GLTF_LOADER = null;
 const isAndroid = /Android/i.test(navigator.userAgent);
 
 const _settings = {
-  threshold: 0.75,
-  NNVersion: 31,
+  threshold: 0.9, // Detection sensitivity from shared code
+  NNVersion: 31, // Best version from shared code
   occluderPath: "assets/occluder.glb",
   scale: 0.95,
-  translation: [0, -0.015, 0],
+  translation: [0, -0.02, 0], // Updated translation from shared code
+  isModelLightMapped: true,
 };
 
+const _states = {
+  notLoaded: -1,
+  loading: 0,
+  running: 1,
+  busy: 2,
+};
+let _state = _states.notLoaded;
+
 function setFullScreen(cv) {
-  cv.width = cv.clientWidth;
-  cv.height = cv.clientHeight;
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
 }
 
 function initAR() {
@@ -25,6 +34,7 @@ function initAR() {
 
   AR_INITIALIZED = true;
   window.AR_INITIALIZED = true;
+  _state = _states.loading;
 
   const handTrackerCanvas = document.getElementById("handTrackerCanvas");
   const VTOCanvas = document.getElementById("ARCanvas");
@@ -32,54 +42,69 @@ function initAR() {
   setFullScreen(handTrackerCanvas);
   setFullScreen(VTOCanvas);
 
-  setTimeout(
-    () => {
-      HandTrackerThreeHelper.init({
-        poseLandmarksLabels: [
-          "ankleBack",
-          "ankleOut",
-          "ankleIn",
-          "ankleFront",
-          "heelBackOut",
-          "heelBackIn",
-          "pinkyToeBaseTop",
-          "middleToeBaseTop",
-          "bigToeBaseTop",
-        ],
+  // Initialize helper with parameters from shared code
+  HandTrackerThreeHelper.init({
+    poseLandmarksLabels: [
+      "ankleBack",
+      "ankleOut",
+      "ankleIn",
+      "ankleFront",
+      "heelBackOut",
+      "heelBackIn",
+      "pinkyToeBaseTop",
+      "middleToeBaseTop",
+      "bigToeBaseTop",
+    ],
 
-        enableFlipObject: true,
-        threshold: _settings.threshold,
-        maxHandsDetected: 2, // performance boost
+    enableFlipObject: true, // Crucial for left/right mirroring
+    cameraZoom: 1,
+    freeZRot: false,
+    threshold: _settings.threshold,
 
-        videoSettings: {
-          facingMode: "environment",
-          width: { ideal: isAndroid ? 480 : 720 },
-          height: { ideal: isAndroid ? 360 : 540 },
-        },
-
-        scanSettings: {
-          nScaleLevels: 3,
-          scale0Factor: 0.6,
-          multiDetectionSearchSlotsRate: 0.4,
-          disableIsRightHandNNEval: true,
-          translationScalingFactors: [0.25, 0.25, 1.0],
-        },
-
-        landmarksStabilizerSpec: {
-          minCutOff: 0.01,
-          beta: 5,
-        },
-
-        NNsPaths: ["../../neuralNets/NN_FOOT_" + _settings.NNVersion + ".json"],
-
-        VTOCanvas,
-        handTrackerCanvas,
-      })
-        .then(startThree)
-        .catch((err) => console.error("AR init error:", err));
+    // High-performance scan settings from shared code
+    scanSettings: {
+      multiDetectionSearchSlotsRate: 0.5,
+      multiDetectionMaxOverlap: 0.3,
+      multiDetectionOverlapScaleXY: [0.5, 1],
+      multiDetectionEqualizeSearchSlotScale: true,
+      multiDetectionForceSearchOnOtherSide: true,
+      multiDetectionForceChirality: 1,
+      disableIsRightHandNNEval: true,
+      overlapFactors: [1.0, 1.0, 1.0],
+      translationScalingFactors: [0.3, 0.3, 1],
+      nScaleLevels: 2,
+      scale0Factor: 0.5,
     },
-    isAndroid ? 150 : 0,
-  );
+
+    VTOCanvas: VTOCanvas,
+    handTrackerCanvas: handTrackerCanvas,
+    debugDisplayLandmarks: false,
+
+    // Using the specific NN path requirement
+    NNsPaths: [
+      "../../neuralNets/NN_FOOT_" + _settings.NNVersion.toString() + ".json",
+    ],
+
+    maxHandsDetected: 2,
+
+    // Specific stabilization from shared code
+    stabilizationSettings: {
+      NNSwitchMask: {
+        isRightHand: false,
+        isFlipped: false,
+      },
+    },
+
+    landmarksStabilizerSpec: {
+      minCutOff: 0.001,
+      beta: 5, // Lower = more stabilized
+    },
+  })
+    .then(function (three) {
+      handTrackerCanvas.style.zIndex = 3; // iOS Safari fix
+      startThree(three);
+    })
+    .catch((err) => console.error("AR init error:", err));
 }
 
 function startThree(three) {
@@ -88,61 +113,51 @@ function startThree(three) {
   const loaderEl = document.getElementById("arLoader");
   if (loaderEl) loaderEl.style.display = "none";
 
-  // Renderer optimization
+  _state = _states.running;
+
+  // Renderer setup
   three.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   three.renderer.outputEncoding = THREE.sRGBEncoding;
-  three.renderer.physicallyCorrectLights = true;
 
-  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
-  three.scene.add(ambient);
+  // Lighting setup based on model mapping
+  if (!_settings.isModelLightMapped) {
+    const pointLight = new THREE.PointLight(0xffffff, 2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    three.scene.add(pointLight, ambientLight);
+  } else {
+    // Basic ambient light for lightmapped models
+    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+    three.scene.add(ambient);
+  }
 
-  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
-  directional.position.set(0, 2, 2);
-  three.scene.add(directional);
-
-  // GLTF Loader
+  // Initialize GLTF Loader with Draco support
   const dracoLoader = new THREE.DRACOLoader();
   dracoLoader.setDecoderPath(
     "https://www.gstatic.com/draco/versioned/decoders/1.5.6/",
   );
-
   GLTF_LOADER = new THREE.GLTFLoader();
   GLTF_LOADER.setDRACOLoader(dracoLoader);
 
   // Load occluder
   GLTF_LOADER.load(_settings.occluderPath, (gltf) => {
     const occluder = gltf.scene.children[0];
-    occluder.scale.multiplyScalar(_settings.scale);
-    occluder.position.add(new THREE.Vector3().fromArray(_settings.translation));
+    applyTransform(occluder);
     HandTrackerThreeHelper.add_threeOccluder(occluder);
   });
 
-  // Preload initial shoe
+  // Preload initial shoe from UI selection
   loadShoe(window.SELECTED_SHOE_MODEL || "assets/shoe1.glb");
 }
 
-function disposeModel(model) {
-  model.traverse((child) => {
-    if (child.geometry) child.geometry.dispose();
-
-    if (child.material) {
-      if (Array.isArray(child.material)) {
-        child.material.forEach((m) => {
-          if (m.map) m.map.dispose();
-          m.dispose();
-        });
-      } else {
-        if (child.material.map) child.material.map.dispose();
-        child.material.dispose();
-      }
-    }
-  });
+function applyTransform(obj) {
+  obj.scale.multiplyScalar(_settings.scale);
+  obj.position.add(new THREE.Vector3().fromArray(_settings.translation));
 }
 
 function loadShoe(modelPath) {
   if (!THREE_CONTEXT || !GLTF_LOADER) return;
 
-  // Remove old shoe properly
+  // Properly clear previous objects
   if (CURRENT_SHOE) {
     HandTrackerThreeHelper.clear_threeObjects();
     disposeModel(CURRENT_SHOE);
@@ -154,9 +169,7 @@ function loadShoe(modelPath) {
     modelPath,
     (gltf) => {
       const shoe = gltf.scene;
-
-      shoe.scale.multiplyScalar(_settings.scale);
-      shoe.position.add(new THREE.Vector3().fromArray(_settings.translation));
+      applyTransform(shoe);
 
       shoe.traverse((child) => {
         child.frustumCulled = false;
@@ -164,12 +177,24 @@ function loadShoe(modelPath) {
       });
 
       CURRENT_SHOE = shoe;
-
-      HandTrackerThreeHelper.add_threeObject(shoe);
+      HandTrackerThreeHelper.add_threeObject(shoe); // Engine mirrors this
     },
     undefined,
-    (error) => {
-      console.error("Model load error:", error);
-    },
+    (error) => console.error("Model load error:", error),
   );
+}
+
+function disposeModel(model) {
+  model.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) {
+      const mats = Array.isArray(child.material)
+        ? child.material
+        : [child.material];
+      mats.forEach((m) => {
+        if (m.map) m.map.dispose();
+        m.dispose();
+      });
+    }
+  });
 }
