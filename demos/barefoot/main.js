@@ -3,7 +3,7 @@ window.AR_INITIALIZED = false;
 
 let THREE_CONTEXT = null;
 let GLTF_LOADER = null;
-
+let CURRENT_SHOE = null;
 let RIGHT_SHOE = null;
 let LEFT_SHOE = null;
 
