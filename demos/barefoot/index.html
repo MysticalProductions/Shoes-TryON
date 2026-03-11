@@ -11,49 +11,31 @@
         <title>BAREFOOT VTO</title>
         <link rel="stylesheet" href="style.css" />
 
-        <!-- INCLUDE WEBARROCKSHAND SCRIPT -->
         <script src="../../dist/WebARRocksHand.js"></script>
 
-        <!-- THREE.JS - REPLACE IT BY three.min.js FOR PROD -->
         <script src="../../libs/three/v131/build/three.js"></script>
-
-        <!-- THREE.JS HELPERS -->
         <script src="../../libs/three/v131/examples/js/loaders/GLTFLoader.js"></script>
 
-        <!-- WEBARROCKSHAND THREEJS VTO HELPER -->
         <script src="../../helpers/HandTrackerThreeHelper.js"></script>
 
-        <!-- INCLUDE LANDMARKS STABILIZER -->
         <script src="../../helpers/landmarksStabilizers/OneEuroLMStabilizer.js"></script>
         <script src="https://unpkg.com/three@0.131.3/examples/js/loaders/DRACOLoader.js"></script>
 
-        <!-- POSEFLIP FILTER -->
         <script src="../../helpers/PoseFlipFilter.js"></script>
 
-        <!-- INCLUDE MAIN DEMO SCRIPT -->
         <script src="./main.js"></script>
     </head>
     <body>
         <header>VTO Shoe Store</header>
 
         <section class="products">
-            <!-- Shoe 1 -->
             <div class="card">
                 <div class="imgBox">
                     <img src="assets/shoe1.png" alt="Nike Dunk" />
                 </div>
                 <h3>Nike Dunk Low Retro</h3>
                 <p>₹8,200</p>
-                <button
-                    onclick="
-                        openAR(
-                            'assets/shoe1_left.glb',
-                            'assets/shoe1_right.glb',
-                        )
-                    "
-                >
-                    Try in AR
-                </button>
+                <button onclick="openAR('assets/shoe1.glb')">Try in AR</button>
             </div>
 
             <div class="card">
@@ -62,20 +44,10 @@
                 </div>
                 <h3>Nike Air Jordan 1 High</h3>
                 <p>₹25,499</p>
-                <button
-                    onclick="
-                        openAR(
-                            'assets/shoe2_left.glb',
-                            'assets/shoe2_right.glb',
-                        )
-                    "
-                >
-                    Try in AR
-                </button>
+                <button onclick="openAR('assets/shoe2.glb')">Try in AR</button>
             </div>
         </section>
 
-        <!-- AR MODAL -->
         <div id="overlay" class="overlay">
             <div class="arBox">
                 <div id="arLoader" class="arLoader">
