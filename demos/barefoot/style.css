@@ -171,3 +171,43 @@ button:hover {
     max-height: 90%;
     object-fit: contain;
 }
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    background: #111;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.logo {
+    font-weight: 600;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.nav-btn {
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: #333;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: 0.3s;
+}
+
+.nav-btn:hover {
+    background: #555;
+}
+
+.nav-btn.primary {
+    background: #007bff;
+}
+
+.nav-btn.primary:hover {
+    background: #0056d2;
+}
